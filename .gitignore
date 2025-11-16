@@ -1,0 +1,41 @@
+*.beam
+*.ez
+*.plt
+*.d
+*.tar
+*.log
+*.tmp
+/.rebar3/
+/_build/
+/build/
+/deps/
+/.cache/
+erl_crash.dump
+.erlang.cookie
+rebar3.crashdump
+
+# Editors & tooling
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python tooling (golden generators)
+__pycache__/
+*.pyc
+
+# Local Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Fuzz failure artifacts (saved test inputs)
+artifact/fuzz-failures/
+artifact/fuzz-failures-test/
+artifact/fuzz-failures-debug/
+
+# Fuzz run artifacts and PID files
+artifact/fuzz_runs/
+*.pid

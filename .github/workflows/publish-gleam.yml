@@ -72,12 +72,20 @@ jobs:
           set -eux
           gleam test
 
-      - name: Determine version from tag
+      - name: Determine version
         id: ver
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${TAG#v}
-          echo "Determined version ${VERSION} from tag ${TAG}"
+          set -euo pipefail
+          # If this run was triggered by a tag push, derive version from the tag.
+          # If triggered by a merged PR (no tag yet), fall back to the version in gleam.toml.
+          if echo "${GITHUB_REF}" | grep -q '^refs/tags/'; then
+            TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG#v}
+            echo "Determined version ${VERSION} from tag ${TAG}"
+          else
+            VERSION=$(grep '^version' gleam.toml | sed -E 's/.*= *"([^\"]+)".*/\1/') || true
+            echo "GITHUB_REF=${GITHUB_REF}; using version from gleam.toml: ${VERSION}"
+          fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create tag from gleam.toml (on merged PR)

@@ -6,7 +6,7 @@ version = "1.0.0"
 # your project to the Hex package manager.
 #
 description = "Pure Gleam implementation of the Apache Thrift Compact Protocol"
-# licences = ["Apache-2.0"]
+licences = ["Apache-2.0"]
 authors = ["Scaratti Daniele aka lupodevelp"]
 repository = { type = "github", user = "lupodevelop", repo = "thrifty" }
 links = [

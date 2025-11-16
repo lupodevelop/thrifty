@@ -1,0 +1,8 @@
+{application, thrifty,
+ [{description, "Pure Gleam implementation of the Apache Thrift Compact Protocol"},
+  {vsn, "1.0.0"},
+  {modules, []},
+  {applications, [kernel, stdlib]},
+  {registered, []},
+  {env, []}
+ ]}.

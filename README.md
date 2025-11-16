@@ -1,7 +1,7 @@
 
 # Thrifty -  a Gleamourous Apache Thrift Compact Protocol Library.
 
-[![CI](https://github.com/lupodevelop/thrifty/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/lupodevelop/thrifty/actions/workflows/run-tests.yml)[![Hex](https://img.shields.io/hexpm/v/thrifty.svg)](https://hex.pm/packages/thrifty) [![License](https://img.shields.io/badge/license-Apache%202.0-yellow.svg)](LICENSE) [![Built with Gleam](https://img.shields.io/badge/Built%20with-Gleam-ffaff3)](https://gleam.run) [![Gleam Version](https://img.shields.io/badge/gleam-%3E%3D1.13.0-ffaff3)](https://gleam.run)
+[![CI](https://github.com/lupodevelop/thrifty/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lupodevelop/thrifty/actions/workflows/ci.yml)[![Hex](https://img.shields.io/hexpm/v/thrifty.svg)](https://hex.pm/packages/thrifty) [![License](https://img.shields.io/badge/license-Apache%202.0-yellow.svg)](LICENSE) [![Built with Gleam](https://img.shields.io/badge/Built%20with-Gleam-ffaff3)](https://gleam.run) [![Gleam Version](https://img.shields.io/badge/gleam-%3E%3D1.13.0-ffaff3)](https://gleam.run)
 
 
 

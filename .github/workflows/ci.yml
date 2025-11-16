@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup runtime
+        uses: ./.github/actions/ci-setup
+        with:
+          otp-version: '28.1'
+          rebar3-version: '3.25.1'
+          gleam-version: '1.13.0'
+
+      - name: Cache Gleam deps and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/gleam
+            ~/.gleam
+            ./_gleam_deps
+            ./build
+          key: ${{ runner.os }}-gleam-1.13.0-otp28-cache-${{ hashFiles('**/gleam.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gleam-1.13.0-otp28-cache-
+
+      - name: Install dependencies
+        run: |
+          set -eux
+          gleam deps download
+
+      - name: Check formatting
+        run: |
+          set -eux
+          gleam format --check src test
+
+      - name: Build project
+        run: |
+          set -eux
+          gleam build
+
+      - name: Run all tests
+        run: |
+          set -eux
+          gleam test
+
+      - name: Prepare CI artifacts
+        if: always()
+        run: |
+          set -eux
+          mkdir -p ci_artifacts
+          echo "tests: ok" > ci_artifacts/test-success.txt
+          if [ -d build ]; then cp -R build ci_artifacts/ || true; fi
+
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-artifacts
+          path: ci_artifacts

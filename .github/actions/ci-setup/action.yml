@@ -1,0 +1,101 @@
+name: ci-setup
+description: "Composite action to install Erlang/rebar3 and Gleam (pinned) and restore Gleam cache"
+inputs:
+  otp-version:
+    description: 'OTP version'
+    required: false
+    default: '28.1'
+  rebar3-version:
+    description: 'rebar3 version'
+    required: false
+    default: '3.25.1'
+  gleam-version:
+    description: 'Gleam version'
+    required: false
+    default: '1.13.0'
+  arch:
+    description: 'Architecture for Gleam asset'
+    required: false
+    default: 'linux-x86_64'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore Gleam cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/gleam
+        key: ${{ runner.os }}-gleam-${{ hashFiles('**/gleam.toml') }}
+
+    - name: Install Erlang/OTP, rebar3 and (optionally) Gleam
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ inputs.otp-version }}
+        rebar3-version: ${{ inputs.rebar3-version }}
+        gleam-version: ${{ inputs.gleam-version }}
+
+    - name: Ensure Gleam is installed (fallbacks)
+      env:
+        GLEAM_VERSION: ${{ inputs.gleam-version }}
+        ARCH: ${{ inputs.arch }}
+      shell: bash
+      run: |
+        set -eux
+        # If erlef/setup-beam already provided gleam, we're done
+        if command -v gleam >/dev/null 2>&1; then
+          echo "gleam already installed"
+          gleam --version || true
+          exit 0
+        fi
+        TAG="v${GLEAM_VERSION}"
+        API_URL="https://api.github.com/repos/gleam-lang/gleam/releases/tags/${TAG}"
+        echo "Querying ${API_URL} for assets"
+
+        # Try exact-match first (version+arch)
+        DOWNLOAD_URL=$(curl -fsSL "${API_URL}" \
+          | grep -oE '"browser_download_url":\s*"[^"]+' \
+          | sed -E 's/.*"([^\"]+)$/\1/' \
+          | grep "${GLEAM_VERSION}-${ARCH}" || true)
+
+        # If not found, try any linux/x86_64-ish asset
+        if [ -z "${DOWNLOAD_URL}" ]; then
+          echo "Exact asset not found; searching for any linux/x86_64 asset"
+          DOWNLOAD_URL=$(curl -fsSL "${API_URL}" \
+            | grep -oE '"browser_download_url":\s*"[^"]+' \
+            | sed -E 's/.*"([^\"]+)$/\1/' \
+            | grep -Ei "linux|x86|x86_64|amd64" | head -n1 || true)
+        fi
+
+        if [ -n "${DOWNLOAD_URL}" ]; then
+          echo "Found asset: ${DOWNLOAD_URL}"
+          curl -fsSL -o /tmp/gleam.tar.gz "${DOWNLOAD_URL}"
+          tar -xzf /tmp/gleam.tar.gz -C /usr/local/bin --strip-components=1
+          gleam --version || true
+          exit 0
+        fi
+
+        # No prebuilt asset found — fallback to building/installing via cargo
+        echo "No prebuilt Gleam asset found for ${TAG}; falling back to cargo install (build from source)"
+
+        # Install rustup if necessary
+        if ! command -v cargo >/dev/null 2>&1; then
+          echo "Installing rustup/cargo"
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+
+        # Ensure latest stable toolchain
+        rustup default stable || true
+
+        # Install gleam from git tag (faster and avoids building all optional targets)
+        cargo install --locked --git https://github.com/gleam-lang/gleam --tag "${TAG}" || {
+          echo "cargo install failed; attempting cargo build from source"
+          tmpdir=$(mktemp -d)
+          git clone --depth 1 --branch "${TAG}" https://github.com/gleam-lang/gleam.git "$tmpdir"
+          cd "$tmpdir"
+          cargo build --release
+          cp target/release/gleam "$HOME/.cargo/bin/"
+        }
+
+        export PATH="$HOME/.cargo/bin:$PATH"
+        gleam --version

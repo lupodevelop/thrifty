@@ -1,3 +1,4 @@
+import gleam/list
 import gleeunit
 import gleeunit/should
 import thrifty/message.{Call, Exception, MessageHeader, Oneway, Reply}
@@ -64,6 +65,19 @@ pub fn message_empty_name_test() {
   decoded.name |> should.equal("")
   decoded.message_type |> should.equal(Call)
   decoded.sequence_id |> should.equal(1)
+}
+
+// Negative sequence IDs must roundtrip correctly (uint32 masking fix)
+pub fn message_negative_seqid_roundtrip_test() {
+  let values = [-1, -100, -2_147_483_648]
+  list.map(values, fn(seqid) {
+    let header =
+      MessageHeader(name: "m", message_type: Call, sequence_id: seqid)
+    let encoded = message.encode_message_header(header)
+    let assert Ok(#(decoded, _)) = message.decode_message_header(encoded, 0)
+    decoded.sequence_id |> should.equal(seqid)
+    0
+  })
 }
 
 pub fn message_long_name_test() {

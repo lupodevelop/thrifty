@@ -35,6 +35,39 @@ pub fn i8_write_test() {
   v |> should.equal(42)
 }
 
+// write_i8: boundary values and roundtrip with negative values
+pub fn i8_write_boundaries_test() {
+  // max positive i8
+  let b_max = writer.write_i8(127)
+  let assert Ok(<<v_max:int-signed-size(8)>>) = bit_array.slice(b_max, 0, 1)
+  v_max |> should.equal(127)
+
+  // min negative i8
+  let b_min = writer.write_i8(-128)
+  let assert Ok(<<v_min:int-signed-size(8)>>) = bit_array.slice(b_min, 0, 1)
+  v_min |> should.equal(-128)
+
+  // -1 encodes as 0xFF
+  let b_neg1 = writer.write_i8(-1)
+  let assert Ok(<<raw:int-size(8)>>) = bit_array.slice(b_neg1, 0, 1)
+  raw |> should.equal(255)
+}
+
+// write_i16: boundary values roundtrip via read_i16
+pub fn i16_write_boundaries_test() {
+  let r_max = reader.from_bit_array(writer.write_i16(32_767))
+  let assert Ok(#(v_max, _)) = reader.read_i16(r_max)
+  v_max |> should.equal(32_767)
+
+  let r_min = reader.from_bit_array(writer.write_i16(-32_768))
+  let assert Ok(#(v_min, _)) = reader.read_i16(r_min)
+  v_min |> should.equal(-32_768)
+
+  let r_neg = reader.from_bit_array(writer.write_i16(-1))
+  let assert Ok(#(v_neg, _)) = reader.read_i16(r_neg)
+  v_neg |> should.equal(-1)
+}
+
 pub fn list_header_roundtrip_test() {
   // short form
   let hdr = writer.write_list_header(14, container.I32Type)

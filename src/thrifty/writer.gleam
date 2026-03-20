@@ -111,19 +111,32 @@ pub fn write_zigzag_i64_checked(
 ///
 /// Outputs
 /// - Returns a `BitArray` of length 1 containing the byte.
+///
+/// Error modes
+/// - Panics when `value` is outside -128..127. Use a range check before
+///   calling if the value origin is untrusted.
 pub fn write_i8(value: Int) -> BitArray {
-  <<value:int-size(8)>>
+  case value < -128 || value > 127 {
+    True -> panic as { "Value " <> int.to_string(value) <> " overflows i8" }
+    False -> <<value:int-size(8)>>
+  }
 }
 
 /// Write an i16 value using zigzag encoding and varint bytes.
 ///
 /// Inputs
-/// - `value`: signed integer; caller should ensure it fits expected range.
+/// - `value`: signed integer in -32768..32767.
 ///
 /// Outputs
-/// - Returns a `BitArray` with the encoded bytes (delegates to zigzag+varint).
+/// - Returns a `BitArray` with the encoded bytes (zigzag + varint).
+///
+/// Error modes
+/// - Panics when `value` is outside the i16 range.
 pub fn write_i16(value: Int) -> BitArray {
-  varint.encode_varint(zigzag.encode_i32(value))
+  case value < -32_768 || value > 32_767 {
+    True -> panic as { "Value " <> int.to_string(value) <> " overflows i16" }
+    False -> varint.encode_varint(zigzag.encode_i32(value))
+  }
 }
 
 /// Write an i32 value using zigzag encoding and varint bytes.
@@ -254,11 +267,6 @@ pub fn write_map(
   concat_many([write_map_header(size, key_type, value_type), payload])
 }
 
-/// Concatenate a list of bitarrays in order.
-fn concat_many(parts: List(BitArray)) -> BitArray {
-  list.fold(parts, <<>>, fn(acc, part) { bit_array.concat([acc, part]) })
-}
-
 /// Concatenate a list of `BitArray` parts into a single contiguous `BitArray`.
 ///
 /// Inputs
@@ -266,22 +274,18 @@ fn concat_many(parts: List(BitArray)) -> BitArray {
 ///
 /// Outputs
 /// - A single `BitArray` containing the concatenated bytes.
+fn concat_many(parts: List(BitArray)) -> BitArray {
+  list.fold(parts, <<>>, fn(acc, part) { bit_array.concat([acc, part]) })
+}
+
 /// Buffer accumulator used by the high-level writer for struct assembly.
 pub type Buffer {
   Buffer(parts: List(BitArray))
 }
 
-/// Create an empty buffer accumulator.
+/// Create a new empty buffer accumulator for high-level writer assembly.
 pub fn buffer_new() -> Buffer {
   Buffer([])
-}
-
-/// Create a new empty buffer accumulator for high-level writer assembly.
-/// Append a new part to the buffer.
-pub fn buffer_append(buffer: Buffer, part: BitArray) -> Buffer {
-  case buffer {
-    Buffer(parts) -> Buffer([part, ..parts])
-  }
 }
 
 /// Append a part to an existing `Buffer` accumulator.
@@ -292,10 +296,9 @@ pub fn buffer_append(buffer: Buffer, part: BitArray) -> Buffer {
 ///
 /// Outputs
 /// - New `Buffer` with `part` added to the internal list.
-/// Convert an accumulated buffer into a contiguous bitarray.
-pub fn buffer_to_bitarray(buffer: Buffer) -> BitArray {
+pub fn buffer_append(buffer: Buffer, part: BitArray) -> Buffer {
   case buffer {
-    Buffer(parts) -> concat_many(list.reverse(parts))
+    Buffer(parts) -> Buffer([part, ..parts])
   }
 }
 
@@ -303,6 +306,12 @@ pub fn buffer_to_bitarray(buffer: Buffer) -> BitArray {
 ///
 /// Outputs
 /// - Concatenated `BitArray` in original append order.
+pub fn buffer_to_bitarray(buffer: Buffer) -> BitArray {
+  case buffer {
+    Buffer(parts) -> concat_many(list.reverse(parts))
+  }
+}
+
 /// Write a boolean field using the inline field header encoding.
 pub fn write_bool(field_id: Int, value: Bool, last_field_id: Int) -> BitArray {
   write_bool_inline(field_id, value, last_field_id)
@@ -321,10 +330,10 @@ pub fn write_bool_inline(
   write_field_header(field_id, field_type, last_field_id)
 }
 
+/// Format a `ZigzagRangeError` into a human readable string for panics/logs.
 fn zigzag_error_to_string(err: zigzag.ZigzagRangeError) -> String {
   case err {
     zigzag.ZigzagRangeError(value, bits) ->
       "Value " <> int.to_string(value) <> " overflows i" <> int.to_string(bits)
   }
 }
-/// Format a `ZigzagRangeError` into a human readable string for panics/logs.

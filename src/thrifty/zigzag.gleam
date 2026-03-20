@@ -116,6 +116,17 @@ pub fn decode_i64(z: Int) -> Int {
   }
 }
 
+/// Validate that `value` falls within `[min, max]` inclusive and return an
+/// explicit `ZigzagRangeError` when it does not.
+///
+/// Inputs
+/// - `value`: integer to validate.
+/// - `min`, `max`: inclusive bounds.
+/// - `bits`: bit-width used for error reporting.
+///
+/// Outputs
+/// - `Ok(value)` when within range.
+/// - `Error(ZigzagRangeError)` when out of range.
 fn check_range(
   value: Int,
   min: Int,
@@ -128,25 +139,6 @@ fn check_range(
   }
 }
 
-/// Validate that `value` falls within `[min, max]` inclusive and return an
-/// explicit `ZigzagRangeError` when it does not.
-///
-/// Inputs
-/// - `value`: integer to validate.
-/// - `min`, `max`: inclusive bounds.
-/// - `bits`: bit-width used for error reporting.
-///
-/// Outputs
-/// - `Ok(value)` when within range.
-/// - `Error(ZigzagRangeError)` when out of range.
-fn mask_uint(value: Int, modulus: Int) -> Int {
-  let remainder = value % modulus
-  case remainder < 0 {
-    True -> remainder + modulus
-    False -> remainder
-  }
-}
-
 /// Ensure an integer is represented as a non-negative residue modulo `modulus`.
 ///
 /// Inputs
@@ -155,10 +147,11 @@ fn mask_uint(value: Int, modulus: Int) -> Int {
 ///
 /// Outputs
 /// - Non-negative integer in 0..modulus-1 representing `value mod modulus`.
-fn zigzag_encode_formula(n: Int) -> Int {
-  case n >= 0 {
-    True -> n * 2
-    False -> n * -2 - 1
+fn mask_uint(value: Int, modulus: Int) -> Int {
+  let remainder = value % modulus
+  case remainder < 0 {
+    True -> remainder + modulus
+    False -> remainder
   }
 }
 
@@ -170,6 +163,20 @@ fn zigzag_encode_formula(n: Int) -> Int {
 ///
 /// Outputs
 /// - ZigZag-mapped integer (unsigned representation prior to masking).
+fn zigzag_encode_formula(n: Int) -> Int {
+  case n >= 0 {
+    True -> n * 2
+    False -> n * -2 - 1
+  }
+}
+
+/// Format a `ZigzagRangeError` for logging or panic messages.
+///
+/// Inputs
+/// - `err`: the error to format.
+///
+/// Outputs
+/// - Human-readable string describing the out-of-range value and bit width.
 fn zigzag_range_error_to_string(err: ZigzagRangeError) -> String {
   case err {
     ZigzagRangeError(value, bits) ->
@@ -180,4 +187,3 @@ fn zigzag_range_error_to_string(err: ZigzagRangeError) -> String {
       <> " range"
   }
 }
-/// Format a `ZigzagRangeError` for logging or panic messages.

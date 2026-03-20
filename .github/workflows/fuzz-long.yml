@@ -1,0 +1,28 @@
+name: Long Fuzz (reusable)
+
+on:
+  workflow_call: {}
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download goldens artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: goldens
+          path: artifact/golden
+
+      - name: Setup runtime
+        uses: ./.github/actions/ci-setup
+        with:
+          otp-version: '28.1'
+          rebar3-version: '3.25.1'
+          gleam-version: '1.13.0'
+
+      - name: Run long fuzz harness
+        run: |
+          set -eux
+          gleam run -m thrifty/fuzz_cli

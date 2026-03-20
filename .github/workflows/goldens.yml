@@ -1,0 +1,59 @@
+name: Generate and Validate Goldens
+
+on:
+  workflow_dispatch:
+    inputs:
+      regen:
+        description: 'Regenerate goldens'
+        required: false
+        type: boolean
+  push:
+    branches: [ main, master ]
+
+jobs:
+  goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup runtime
+        uses: ./.github/actions/ci-setup
+        with:
+          otp-version: '28.1'
+          rebar3-version: '3.25.1'
+          gleam-version: '1.13.0'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            .venv
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/golden/generate_compact_vectors.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        run: |
+          set -eux
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install thriftpy2
+
+      - name: Generate goldens
+        run: |
+          set -eux
+          . .venv/bin/activate
+          python3 tools/golden/generate_compact_vectors.py
+
+      - name: Run golden validation (gleam tests)
+        run: |
+          set -eux
+          gleam test
+
+      - name: Upload goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: goldens
+          path: artifact/golden

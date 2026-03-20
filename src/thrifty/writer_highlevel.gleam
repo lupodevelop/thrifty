@@ -237,6 +237,18 @@ pub fn finish(builder: StructWriter) -> BitArray {
   |> low_writer.buffer_to_bitarray
 }
 
+/// Internal helper that appends a field header and optional payload to the
+/// builder's buffer and returns the updated `StructWriter`.
+///
+/// Inputs
+/// - `struct_writer`: current `StructWriter` state.
+/// - `field_id`: identifier for the field being appended.
+/// - `field_type`: type of the field.
+/// - `payload`: pre-encoded payload bytes for the field (may be empty).
+///
+/// Outputs
+/// - `StructWriter` updated with the appended header/payload and the new
+///   last_field_id set to `field_id`.
 fn append_field(
   struct_writer: StructWriter,
   field_id: Int,
@@ -253,15 +265,3 @@ fn append_field(
   }
   StructWriter(field_id, buffer_with_payload)
 }
-/// Internal helper that appends a field header and optional payload to the
-/// builder's buffer and returns the updated `StructWriter`.
-///
-/// Inputs
-/// - `struct_writer`: current `StructWriter` state.
-/// - `field_id`: identifier for the field being appended.
-/// - `field_type`: type of the field.
-/// - `payload`: pre-encoded payload bytes for the field (may be empty).
-///
-/// Outputs
-/// - `StructWriter` updated with the appended header/payload and the new
-///   last_field_id set to `field_id`.

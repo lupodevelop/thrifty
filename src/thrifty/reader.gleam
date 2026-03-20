@@ -64,7 +64,7 @@ pub fn read_i8(
     Error(_) -> Error(types.UnexpectedEndOfInput)
     Ok(bits) ->
       case bits {
-        <<value:int-size(8)>> ->
+        <<value:int-signed-size(8)>> ->
           Ok(#(value, set_position(reader, byte_pos + 1, options)))
         _ -> Error(types.InvalidWireFormat("Invalid byte"))
       }
@@ -197,8 +197,10 @@ pub fn read_bool_element(
                 _ -> Error(types.InvalidWireFormat("Invalid boolean element"))
               }
             types.AcceptBoth ->
-              // Accept either common encoding 1 or 2 and map to booleans.
+              // Accept canonical (1/2) and also legacy (0/1) boolean encoding.
+              // 0 => False, 1 => True, 2 => False; all other bytes are invalid.
               case value {
+                0 -> Ok(#(False, set_position(reader, byte_pos + 1, options)))
                 1 -> Ok(#(True, set_position(reader, byte_pos + 1, options)))
                 2 -> Ok(#(False, set_position(reader, byte_pos + 1, options)))
                 _ -> Error(types.InvalidWireFormat("Invalid boolean element"))
@@ -519,15 +521,6 @@ fn map_reader(
   }
 }
 
-fn set_position(
-  reader: types.Reader,
-  byte_pos: Int,
-  options: types.ReaderOptions,
-) -> types.Reader {
-  let types.Reader(data, _, _) = reader
-  types.Reader(data, byte_pos, options)
-}
-
 /// Set the reader's byte position and options, returning a new immutable reader.
 ///
 /// Inputs
@@ -538,6 +531,25 @@ fn set_position(
 /// Outputs
 /// - A `types.Reader` referencing the same underlying data with updated
 ///   position and options.
+fn set_position(
+  reader: types.Reader,
+  byte_pos: Int,
+  options: types.ReaderOptions,
+) -> types.Reader {
+  let types.Reader(data, _, _) = reader
+  types.Reader(data, byte_pos, options)
+}
+
+/// Ensure the current recursion `depth` does not exceed configured limits.
+///
+/// Inputs
+/// - `reader`: the current `types.Reader` containing configured options.
+/// - `depth`: current recursion depth to validate.
+///
+/// Outputs
+/// - `Ok(Nil)` when within limits.
+/// - `Error(types.InvalidWireFormat("Exceeded maximum depth"))` when the depth
+///   exceeds `options.max_depth`.
 fn ensure_depth(
   reader: types.Reader,
   depth: Int,
@@ -549,26 +561,6 @@ fn ensure_depth(
   }
 }
 
-fn ensure_limit(
-  value: Int,
-  limit: Int,
-  message: String,
-) -> Result(Nil, types.DecodeError) {
-  case value > limit {
-    True -> Error(types.InvalidWireFormat(message))
-    False -> Ok(Nil)
-  }
-}
-/// Ensure the current recursion `depth` does not exceed configured limits.
-///
-/// Inputs
-/// - `reader`: the current `types.Reader` containing configured options.
-/// - `depth`: current recursion depth to validate.
-///
-/// Outputs
-/// - `Ok(Nil)` when within limits.
-/// - `Error(types.InvalidWireFormat("Exceeded maximum depth"))` when the depth
-///   exceeds `options.max_depth`.
 /// Ensure a numeric `value` does not exceed a configured `limit`.
 ///
 /// Inputs
@@ -579,3 +571,13 @@ fn ensure_limit(
 /// Outputs
 /// - `Ok(Nil)` when `value <= limit`.
 /// - `Error(types.InvalidWireFormat(message))` when `value > limit`.
+fn ensure_limit(
+  value: Int,
+  limit: Int,
+  message: String,
+) -> Result(Nil, types.DecodeError) {
+  case value > limit {
+    True -> Error(types.InvalidWireFormat(message))
+    False -> Ok(Nil)
+  }
+}

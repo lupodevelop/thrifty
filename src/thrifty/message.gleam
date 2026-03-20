@@ -53,7 +53,11 @@ pub fn encode_message_header(header: MessageHeader) -> BitArray {
   let type_value = message_type_to_int(header.message_type)
   let version_and_type = version * 32 + type_value
 
-  let seq_id_varint = varint.encode_varint(header.sequence_id)
+  // Encode seq_id as unsigned 32-bit two's-complement varint, matching the
+  // reference Java implementation which uses unsigned right-shift (>>>).
+  let seq_id_u32 =
+    { header.sequence_id % 4_294_967_296 + 4_294_967_296 } % 4_294_967_296
+  let seq_id_varint = varint.encode_varint(seq_id_u32)
 
   let name_bytes =
     string.to_utf_codepoints(header.name)
@@ -108,7 +112,13 @@ pub fn decode_message_header(
                       // Read sequence ID first
                       case varint.decode_varint(data, byte_pos + 2) {
                         Error(e) -> Error(e)
-                        Ok(#(seq_id, pos_after_seq)) -> {
+                        Ok(#(seq_id_raw, pos_after_seq)) -> {
+                          // Sign-extend back to i32: values > INT32_MAX were
+                          // negative before the uint32 encoding on the write side.
+                          let seq_id = case seq_id_raw > 2_147_483_647 {
+                            True -> seq_id_raw - 4_294_967_296
+                            False -> seq_id_raw
+                          }
                           // Read method name length
                           case varint.decode_varint(data, pos_after_seq) {
                             Error(e) -> Error(e)
@@ -160,6 +170,14 @@ pub fn decode_message_header(
   }
 }
 
+/// Convert a `MessageType` to the protocol numeric value used in the
+/// version/type byte.
+///
+/// Inputs
+/// - `mt`: message type enum.
+///
+/// Outputs
+/// - Integer value used in encoding the version/type byte.
 fn message_type_to_int(mt: MessageType) -> Int {
   case mt {
     Call -> 1
@@ -169,14 +187,14 @@ fn message_type_to_int(mt: MessageType) -> Int {
   }
 }
 
-/// Convert a `MessageType` to the protocol numeric value used in the
-/// version/type byte.
+/// Convert a numeric message type to `MessageType`.
 ///
 /// Inputs
-/// - `mt`: message type enum.
+/// - `n`: numeric type extracted from the version/type byte.
 ///
 /// Outputs
-/// - Integer value used in encoding the version/type byte.
+/// - `Ok(MessageType)` when recognized.
+/// - `Error(types.UnsupportedType(n))` when unknown.
 fn int_to_message_type(n: Int) -> Result(MessageType, types.DecodeError) {
   case n {
     1 -> Ok(Call)
@@ -186,7 +204,6 @@ fn int_to_message_type(n: Int) -> Result(MessageType, types.DecodeError) {
     _ -> Error(types.UnsupportedType(n))
   }
 }
-/// Convert a numeric message type to `MessageType`.
 ///
 /// Inputs
 /// - `n`: numeric type extracted from the version/type byte.

@@ -142,13 +142,45 @@ jobs:
             exit 0
           fi
 
+      - name: Diagnostics — repo and hex key status (non-sensitive)
+        run: |
+          set -euo pipefail
+          echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-(unset)}"
+          echo "git remote:"; git remote -v || true
+          echo "gleam.toml repository field:"; grep '^repository' -n gleam.toml || true
+          echo "Checking GitHub repo URL (no auth)"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://github.com/${GITHUB_REPOSITORY}") || true
+          echo "GitHub URL HTTP status: ${HTTP_CODE}"
+          echo "Checking hex key file presence"
+          if [ -f "$HOME/.hex/hexpm_key" ]; then
+            echo "hex key file: exists"
+            if [ -r "$HOME/.hex/hexpm_key" ]; then
+              echo "hex key file: readable"
+            else
+              echo "hex key file: not readable"
+            fi
+          else
+            echo "hex key file: missing"
+          fi
+          if [ -n "${HEX_API_KEY:-}" ]; then
+            echo "HEX_API_KEY env var: set"
+          else
+            echo "HEX_API_KEY env var: not set"
+          fi
+
       - name: Publish to Hex
         if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
           set -euo pipefail
-          echo "Publishing with gleam publish --yes"
+          echo "Publishing with gleam publish --yes (non-interactive)"
+          # Ensure the Hex API key is available to rebar3/gleam in non-interactive runners
+          mkdir -p "$HOME/.hex"
+          # Write the raw API key to the hex key file so the client won't prompt for credentials.
+          printf "%s" "${HEX_API_KEY}" > "$HOME/.hex/hexpm_key"
+          chmod 600 "$HOME/.hex/hexpm_key"
+          # Perform publish (stdin remains connected so --yes can be provided)
           echo "I am not using semantic versioning" | gleam publish --yes
 
       - name: Create GitHub Release

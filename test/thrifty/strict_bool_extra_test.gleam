@@ -57,8 +57,29 @@ pub fn read_bool_element_accepts_1_and_2_permissive_test() {
   }
 }
 
+// AcceptBoth must accept legacy byte 0 as False
+pub fn permissive_bool_accepts_zero_as_false_test() {
+  let data = <<0:int-size(8)>>
+
+  let reader =
+    thrifty_reader.with_options(
+      data,
+      types.ReaderOptions(
+        max_depth: 64,
+        max_container_items: 32,
+        max_string_bytes: 256,
+        bool_element_policy: types.AcceptBoth,
+      ),
+    )
+
+  case thrifty_reader.read_bool_element(reader) {
+    Ok(#(v, _)) -> v |> should.equal(False)
+    Error(_) -> should.fail()
+  }
+}
+
 pub fn read_bool_element_rejects_other_bytes_test() {
-  // byte 0 is invalid
+  // byte 0 is invalid with AcceptCanonicalOnly
   let data = <<0:int-size(8)>>
 
   let reader =

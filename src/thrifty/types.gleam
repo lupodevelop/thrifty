@@ -5,10 +5,6 @@ pub type Reader {
   Reader(data: BitArray, position: Int, options: ReaderOptions)
 }
 
-pub type Writer {
-  Writer(buffer: BitArray)
-}
-
 pub type FieldType {
   BoolTrue
   BoolFalse
@@ -51,16 +47,15 @@ pub type ReaderOptions {
 /// How boolean elements (bytes inside list/set/map representing booleans)
 /// are interpreted and validated by the reader.
 pub type BoolElementPolicy {
-  // Accept both byte encodings 1 and 2 and map them to booleans as
-  // 1 => True, 2 => False. This is the default and maximally compatible
-  // behaviour.
+  // Accept both the canonical Compact Protocol encoding (1 => True, 2 => False)
+  // and the legacy BinaryProtocol encoding (0 => False, 1 => True).
+  // Use this policy for maximum interoperability with older implementations.
+  // Valid bytes: 0, 1, 2.  All other bytes are still rejected.
   AcceptBoth
 
-  // Enforce canonical validation: accept only the canonical spec encodings
-  // (1 => True, 2 => False) and reject any other byte with
+  // Enforce canonical Compact Protocol encodings only:
+  // 1 => True, 2 => False. Byte 0 and any other value are rejected with
   // `InvalidWireFormat("Invalid boolean element")`.
-  // (Functionally equivalent to AcceptBoth today but provided to make the
-  // intent explicit and to allow future divergence if needed.)
   AcceptCanonicalOnly
 }
 

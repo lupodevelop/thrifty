@@ -1,4 +1,5 @@
 import gleam/bit_array
+import gleam/list
 import gleeunit
 import gleeunit/should
 
@@ -9,6 +10,18 @@ import thrifty/writer
 
 pub fn main() {
   gleeunit.main()
+}
+
+// read_i8: negative values must roundtrip correctly after the signed fix
+pub fn read_i8_negative_roundtrip_test() {
+  let values = [-1, -128, -42, -100, 0, 1, 127]
+  list.map(values, fn(v) {
+    let bits = writer.write_i8(v)
+    let r = reader.from_bit_array(bits)
+    let assert Ok(#(decoded, _)) = reader.read_i8(r)
+    decoded |> should.equal(v)
+    0
+  })
 }
 
 pub fn read_primitives_test() {

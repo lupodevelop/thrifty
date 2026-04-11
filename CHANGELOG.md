@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [1.1.1] — 2026-04-11
+
+### Fixed
+
+- **README link to Apache Thrift Compact Protocol specification**
+  Updated the project README link to point to
+  `https://github.com/apache/thrift/blob/master/doc/specs/thrift-compact-protocol.md`.
+
 ## [1.1.0] — 2026-03-20
 
 ### Fixed

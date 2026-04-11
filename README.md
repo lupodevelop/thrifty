@@ -5,7 +5,7 @@
 
 
 
-Thrifty is a pure Gleam implementation of the [Apache Thrift Compact Protocol](https://thrift.apache.org/docs/compact-protocol). It targets predictable behaviour, strict boolean semantics, and interoperability with golden payloads produced by official Thrift stacks.
+Thrifty is a pure Gleam implementation of the [Apache Thrift Compact Protocol](https://github.com/apache/thrift/blob/master/doc/specs/thrift-compact-protocol.md). It targets predictable behaviour, strict boolean semantics, and interoperability with golden payloads produced by official Thrift stacks.
 
 | Use case | What Thrifty provides |
 | --- | --- |

@@ -75,6 +75,14 @@ pub fn skip_list_and_map_test() {
   reader.position(map_after) |> should.equal(bit_array.byte_size(map_data))
 }
 
+pub fn read_empty_struct_test() {
+  let data = <<0x00:int-size(8)>>
+  let struct_reader = reader.from_bit_array(data)
+  let assert Ok(#(fields, after_struct)) = reader.read_struct(struct_reader)
+  fields |> should.equal([])
+  reader.position(after_struct) |> should.equal(1)
+}
+
 pub fn read_struct_test() {
   let buf0 = writer.buffer_new()
   let buf1 =

@@ -87,7 +87,6 @@ For long-running fuzz jobs in CI, upload `artifact/fuzz-failures/` as a build ar
 
 ## Testing & Tooling
 
-- `gleam test` covers all suites and currently exercises 79 assertions.
 - GitHub Actions workflows:
   - `run-tests.yml`: primary CI (`gleam test`).
   - `validate-goldens.yml`: ensures golden vectors are up to date.

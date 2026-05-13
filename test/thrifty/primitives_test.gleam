@@ -1,5 +1,6 @@
 import gleeunit
 import gleeunit/should
+import thrifty/types
 import thrifty/varint
 import thrifty/zigzag
 
@@ -92,4 +93,25 @@ pub fn zigzag_encode_i64_negative_one_test() {
   let encoded = zigzag.encode_i64(-1)
   let decoded = zigzag.decode_i64(encoded)
   decoded |> should.equal(-1)
+}
+
+pub fn varint_decode_too_long_test() {
+  // 10 continuation bytes (MSB set, no terminator) → InvalidVarint
+  let data = <<
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+    0x80:int-size(8),
+  >>
+  let assert Error(e) = varint.decode_varint(data, 0)
+  case e {
+    types.InvalidVarint -> Nil
+    _ -> panic as "Expected InvalidVarint"
+  }
 }

@@ -7,6 +7,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [1.1.2] — 2026-05-13
+
+### Fixed
+
+- **Orphaned doc comments in `message.gleam`** — duplicate `///` block after
+  `int_to_message_type` closing brace removed. Gleam attaches `///` to the
+  next item; the trailing copy was silently associated with nothing and
+  contradicted the v1.1.0 changelog claim that all misplaced comments had
+  been cleaned up.
+
+
+### Tests added
+
+- `read_empty_struct_test` — verifies that a struct containing only the stop
+  field (`0x00`) decodes to an empty field list.
+- `long_form_negative_field_id_128_test` — field ID `-128` round-trips through
+  zigzag + varint encoding in a long-form header.
+- `long_form_negative_field_id_min_test` — field ID `-32 768` (i16 minimum)
+  round-trips correctly.
+- `varint_decode_too_long_test` — 10 consecutive continuation bytes without a
+  terminator returns `Error(InvalidVarint)`.
+
+---
+
 ## [1.1.1] — 2026-04-11
 
 ### Fixed

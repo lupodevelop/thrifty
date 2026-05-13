@@ -204,10 +204,3 @@ fn int_to_message_type(n: Int) -> Result(MessageType, types.DecodeError) {
     _ -> Error(types.UnsupportedType(n))
   }
 }
-///
-/// Inputs
-/// - `n`: numeric type extracted from the version/type byte.
-///
-/// Outputs
-/// - `Ok(MessageType)` when recognized.
-/// - `Error(types.UnsupportedType(n))` when unknown.

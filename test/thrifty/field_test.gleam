@@ -58,6 +58,34 @@ pub fn long_form_negative_field_id_test() {
   }
 }
 
+pub fn long_form_negative_field_id_128_test() {
+  // field_id=-128 -> zigzag(-128)=255 -> varint(255) = <<0xFF, 0x01>>
+  let field_id_bits = varint.encode_varint(zigzag.encode_i32(-128))
+  let data = <<0x05:int-size(8), field_id_bits:bits>>
+  let reader0 = reader.from_bit_array(data)
+  let assert Ok(#(hdr, _)) = field.read_field_header(reader0, 100)
+  case hdr {
+    types.FieldHeader(field_id, ftype) -> {
+      field_id |> should.equal(-128)
+      ftype |> should.equal(types.I32)
+    }
+  }
+}
+
+pub fn long_form_negative_field_id_min_test() {
+  // field_id=-32768 -> zigzag(-32768)=65535 -> varint(65535) = <<0xFF, 0xFF, 0x03>>
+  let field_id_bits = varint.encode_varint(zigzag.encode_i32(-32_768))
+  let data = <<0x05:int-size(8), field_id_bits:bits>>
+  let reader0 = reader.from_bit_array(data)
+  let assert Ok(#(hdr, _)) = field.read_field_header(reader0, 100)
+  case hdr {
+    types.FieldHeader(field_id, ftype) -> {
+      field_id |> should.equal(-32_768)
+      ftype |> should.equal(types.I32)
+    }
+  }
+}
+
 pub fn boolean_inline_header_test() {
   // delta=1, type=BOOL_TRUE(1) -> 0x11
   let data = <<0x11:int-size(8)>>
